@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Confirmación de Registro</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f3f4f6;
+            color: #333;
+        }
+        
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: #ffffff;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #2D5016 0%, #7FD700 100%);
+            padding: 40px 20px;
+            text-align: center;
+            color: white;
+        }
+        
+        .header h1 {
+            font-size: 28px;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+        
+        .header p {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+        
+        .content {
+            padding: 40px 30px;
+        }
+        
+        .greeting {
+            font-size: 18px;
+            color: #2D5016;
+            margin-bottom: 20px;
+            font-weight: 600;
+        }
+        
+        .message {
+            font-size: 14px;
+            line-height: 1.8;
+            color: #555;
+            margin-bottom: 30px;
+        }
+        
+        .confirmation-box {
+            background-color: #f0fdf4;
+            border-left: 4px solid #7FD700;
+            padding: 20px;
+            margin: 30px 0;
+            border-radius: 4px;
+        }
+        
+        .confirmation-box p {
+            font-size: 13px;
+            color: #2D5016;
+            margin-bottom: 10px;
+        }
+        
+        .confirmation-box strong {
+            color: #2D5016;
+            font-size: 14px;
+        }
+        
+        .cta-button {
+            display: inline-block;
+            background-color: #7FD700;
+            color: #2D5016;
+            padding: 14px 40px;
+            text-decoration: none;
+            border-radius: 4px;
+            font-weight: 600;
+            font-size: 14px;
+            margin: 20px 0;
+            transition: background-color 0.3s ease;
+        }
+        
+        .cta-button:hover {
+            background-color: #6FCC00;
+        }
+        
+        .footer {
+            background-color: #f9fafb;
+            padding: 30px;
+            text-align: center;
+            border-top: 1px solid #e5e7eb;
+            font-size: 12px;
+            color: #6b7280;
+        }
+        
+        .footer p {
+            margin-bottom: 10px;
+        }
+        
+        .social-links {
+            margin-top: 15px;
+        }
+        
+        .social-links a {
+            display: inline-block;
+            margin: 0 8px;
+            color: #2D5016;
+            text-decoration: none;
+            font-size: 12px;
+        }
+        
+        .divider {
+            height: 1px;
+            background-color: #e5e7eb;
+            margin: 20px 0;
+        }
+        
+        .highlight {
+            color: #7FD700;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>🌱 Bienvenido</h1>
+            <p>Tu cuenta ha sido creada exitosamente</p>
+        </div>
+        
+        <!-- Content -->
+        <div class="content">
+            <p class="greeting">¡Hola {{ user_name }}!</p>
+            
+            <p class="message">
+                Gracias por registrarte en nuestro servicio. Tu cuenta ha sido creada exitosamente y está lista para usar.
+            </p>
+            
+            <div class="confirmation-box">
+                <p><strong>Información de tu cuenta:</strong></p>
+                <p>📧 Correo: <strong>{{ user_email }}</strong></p>
+                <p>📅 Fecha de registro: <strong>{{ registration_date }}</strong></p>
+                <p>✅ Estado: <strong>Activo</strong></p>
+            </div>
+            
+            <p class="message">
+                Para completar tu registro y activar todas las funcionalidades, por favor confirma tu correo electrónico haciendo clic en el siguiente botón:
+            </p>
+            
+            <center>
+                <a href="{{ confirmation_link }}" class="cta-button">Confirmar mi correo</a>
+            </center>
+            
+            <p class="message">
+                Si el botón anterior no funciona, copia y pega el siguiente enlace en tu navegador:
+            </p>
+            
+            <p style="font-size: 12px; word-break: break-all; background-color: #f3f4f6; padding: 10px; border-radius: 4px; color: #555;">
+                {{ confirmation_link }}
+            </p>
+            
+            <div class="divider"></div>
+            
+            <p class="message" style="font-size: 13px; color: #6b7280;">
+                Este enlace de confirmación expirará en <span class="highlight">24 horas</span>. Si no confirmas tu correo en este tiempo, deberás registrarte nuevamente.
+            </p>
+        </div>
+        
+        <!-- Footer -->
+        <div class="footer">
+            <p>© 2025 Email Notification Service. Todos los derechos reservados.</p>
+            <p>Este es un correo automático, por favor no respondas a este mensaje.</p>
+            <div class="social-links">
+                <a href="#">Política de Privacidad</a> | 
+                <a href="#">Términos de Servicio</a> | 
+                <a href="#">Contacto</a>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
