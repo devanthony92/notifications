@@ -1,6 +1,6 @@
 """
 Servicio de envío de correos electrónicos
-Soporta: SMTP y Microsoft Graph (O365)
+Soporta: SMTP
 Autor: Anthony Martinez
 """
 
@@ -14,21 +14,16 @@ from typing import List, Optional
 from sqlalchemy.orm import Session
 from app.models import EmailAccount, SentEmail, EmailStatus, EmailAttachment, EmailProviderType
 from app.schemas import SendEmailRequest
-from datetime import datetime
+from datetime import datetime, timezone
 import base64
 from jinja2 import Template
-import aiohttp
-import json
-from O365 import Account
-from O365.mailbox import Message
-import asyncio
 
 logger = logging.getLogger(__name__)
 
 
 class EmailService:
     """
-    Servicio para enviar correos electrónicos vía SMTP o Microsoft Graph (O365)
+    Servicio para enviar correos electrónicos vía SMTP
     Autor: Anthony Martinez
     """
     
@@ -125,7 +120,7 @@ class EmailService:
             # Actualizar estado
             if success:
                 sent_email.status = EmailStatus.SENT
-                sent_email.sent_at = datetime.utcnow()
+                sent_email.sent_at = datetime.now(timezone.utc)
             else:
                 sent_email.status = EmailStatus.FAILED
                 sent_email.error_message = message
@@ -205,116 +200,116 @@ class EmailService:
             logger.error(f"Error al enviar correo SMTP: {str(e)}")
             return False, f"Error SMTP: {str(e)}"
     
-    @staticmethod
-    async def _send_o365(
-        email_account: EmailAccount,
-        to_emails: List[str],
-        subject: str,
-        body: str,
-        cc_emails: Optional[List[str]] = None,
-        bcc_emails: Optional[List[str]] = None,
-        attachments: Optional[List] = None,
-    ) -> tuple[bool, str]:
-        """
-        Enviar correo a través de Microsoft Graph (O365)
-        Usa python-o365 para simplificar la autenticación y envío
-        Autor: Anthony Martinez
-        """
-        try:
-            # Ejecutar en un thread separado ya que python-o365 es síncrono
-            loop = asyncio.get_event_loop()
-            result = await loop.run_in_executor(
-                None,
-                EmailService._send_o365_sync,
-                email_account,
-                to_emails,
-                subject,
-                body,
-                cc_emails,
-                bcc_emails,
-                attachments,
-            )
+    # @staticmethod
+    # async def _send_o365(
+    #     email_account: EmailAccount,
+    #     to_emails: List[str],
+    #     subject: str,
+    #     body: str,
+    #     cc_emails: Optional[List[str]] = None,
+    #     bcc_emails: Optional[List[str]] = None,
+    #     attachments: Optional[List] = None,
+    # ) -> tuple[bool, str]:
+    #     """
+    #     Enviar correo a través de Microsoft Graph (O365)
+    #     Usa python-o365 para simplificar la autenticación y envío
+    #     Autor: Anthony Martinez
+    #     """
+    #     try:
+    #         # Ejecutar en un thread separado ya que python-o365 es síncrono
+    #         loop = asyncio.get_event_loop()
+    #         result = await loop.run_in_executor(
+    #             None,
+    #             EmailService._send_o365_sync,
+    #             email_account,
+    #             to_emails,
+    #             subject,
+    #             body,
+    #             cc_emails,
+    #             bcc_emails,
+    #             attachments,
+    #         )
             
-            return result
+    #         return result
             
-        except Exception as e:
-            logger.error(f"Error al enviar correo O365: {str(e)}")
-            return False, f"Error O365: {str(e)}"
+    #     except Exception as e:
+    #         logger.error(f"Error al enviar correo O365: {str(e)}")
+    #         return False, f"Error O365: {str(e)}"
     
-    @staticmethod
-    def _send_o365_sync(
-        email_account: EmailAccount,
-        to_emails: List[str],
-        subject: str,
-        body: str,
-        cc_emails: Optional[List[str]] = None,
-        bcc_emails: Optional[List[str]] = None,
-        attachments: Optional[List] = None,
-    ) -> tuple[bool, str]:
-        """
-        Función sincrónica para enviar correo vía O365
-        Autor: Anthony Martinez
-        """
-        try:
-            # Credenciales para autenticación
-            credentials = (
-                email_account.azure_client_id,
-                email_account.azure_client_secret,
-            )
+    # @staticmethod
+    # def _send_o365_sync(
+    #     email_account: EmailAccount,
+    #     to_emails: List[str],
+    #     subject: str,
+    #     body: str,
+    #     cc_emails: Optional[List[str]] = None,
+    #     bcc_emails: Optional[List[str]] = None,
+    #     attachments: Optional[List] = None,
+    # ) -> tuple[bool, str]:
+    #     """
+    #     Función sincrónica para enviar correo vía O365
+    #     Autor: Anthony Martinez
+    #     """
+    #     try:
+    #         # Credenciales para autenticación
+    #         credentials = (
+    #             email_account.azure_client_id,
+    #             email_account.azure_client_secret,
+    #         )
             
-            # Crear cuenta de O365
-            account = Account(
-                credentials=credentials,
-                tenant_id=email_account.azure_tenant_id,
-                scopes=["https://graph.microsoft.com/.default"],
-            )
+    #         # Crear cuenta de O365
+    #         account = Account(
+    #             credentials=credentials,
+    #             tenant_id=email_account.azure_tenant_id,
+    #             scopes=["https://graph.microsoft.com/.default"],
+    #         )
             
-            # Autenticar
-            if not account.is_authenticated:
-                success = account.authenticate()
-                if not success:
-                    return False, "Error de autenticación con O365"
+    #         # Autenticar
+    #         if not account.is_authenticated:
+    #             success = account.authenticate()
+    #             if not success:
+    #                 return False, "Error de autenticación con O365"
             
-            # Obtener el mailbox
-            mailbox = account.mailbox()
+    #         # Obtener el mailbox
+    #         mailbox = account.mailbox()
             
-            # Crear mensaje
-            message = mailbox.new_message()
-            message.subject = subject
-            message.body = body
-            message.to.add(to_emails)
+    #         # Crear mensaje
+    #         message = mailbox.new_message()
+    #         message.subject = subject
+    #         message.body = body
+    #         message.to.add(to_emails)
             
-            # Agregar CC
-            if cc_emails:
-                message.cc.add(cc_emails)
+    #         # Agregar CC
+    #         if cc_emails:
+    #             message.cc.add(cc_emails)
             
-            # Agregar BCC
-            if bcc_emails:
-                message.bcc.add(bcc_emails)
+    #         # Agregar BCC
+    #         if bcc_emails:
+    #             message.bcc.add(bcc_emails)
             
-            # Agregar adjuntos
-            if attachments:
-                for attachment in attachments:
-                    # Decodificar el contenido base64
-                    file_content = base64.b64decode(attachment["content"])
-                    message.attachments.add(
-                        file_name=attachment["filename"],
-                        file_content=file_content,
-                    )
+    #         # Agregar adjuntos
+    #         if attachments:
+    #             for attachment in attachments:
+    #                 # Decodificar el contenido base64
+    #                 file_content = base64.b64decode(attachment["content"])
+    #                 message.attachments.add(
+    #                     file_name=attachment["filename"],
+    #                     file_content=file_content,
+    #                 )
             
-            # Enviar correo
-            success = message.send()
+    #         # Enviar correo
+    #         success = message.send()
             
-            if success:
-                logger.info(f"Correo enviado exitosamente vía O365 a {to_emails}")
-                return True, "Correo enviado exitosamente"
-            else:
-                logger.error("Error al enviar correo O365")
-                return False, "Error al enviar correo O365"
+    #         if success:
+    #             logger.info(f"Correo enviado exitosamente vía O365 a {to_emails}")
+    #             return True, "Correo enviado exitosamente"
+    #         else:
+    #             logger.error("Error al enviar correo O365")
+    #             return False, "Error al enviar correo O365"
             
-        except Exception as e:
-            logger.error(f"Error en _send_o365_sync: {str(e)}")
-            return False, f"Error O365: {str(e)}"
+    #     except Exception as e:
+    #         logger.error(f"Error en _send_o365_sync: {str(e)}")
+    #         return False, f"Error O365: {str(e)}"
     
     @staticmethod
     def _replace_variables(text: str, variables: dict) -> str:

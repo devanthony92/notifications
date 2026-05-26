@@ -6,7 +6,7 @@ Autor: Anthony Martinez
 from sqlalchemy import Column, Integer, String, Text, DateTime, Boolean, ForeignKey, Enum as SQLEnum, LargeBinary
 from sqlalchemy.orm import relationship, DeclarativeBase
 from sqlalchemy.dialects.postgresql import ENUM
-from datetime import datetime
+from datetime import datetime, timezone
 from app.config import settings
 import enum
 
@@ -42,12 +42,14 @@ class EmailStatus(str, enum.Enum):
     QUEUED = "QUEUED"
 
 
+_schema = settings.db_schema or None
+
 EmailAccountStatusEnum = ENUM(
     "ACTIVE",
     "INACTIVE",
     "SUSPENDED",
     name="email_account_status",
-    schema=settings.db_schema,
+    schema=_schema,
     create_type=True,
 )
 
@@ -57,7 +59,7 @@ EmailStatusEnum = ENUM(
     "FAILED",
     "QUEUED",
     name="email_status",
-    schema=settings.db_schema,
+    schema=_schema,
     create_type=True,
 )
 
@@ -65,7 +67,7 @@ EmailProviderTypeEnum = ENUM(
     "SMTP",
     "AZURE",
     name="email_provider_type",
-    schema=settings.db_schema,
+    schema=_schema,
     create_type=True,
 )
 
@@ -74,14 +76,14 @@ TemplateTypeEnum = ENUM(
     "PASSWORD_RESET",
     "GENERAL",
     name="template_type",
-    schema=settings.db_schema,
+    schema=_schema,
     create_type=True,
 )
 
 class EmailAccount(Base):
     """Modelo para almacenar cuentas de correo configuradas"""
     __tablename__ = "email_accounts"
-    __table_args__ = {"schema": settings.db_schema}
+    __table_args__ = {"schema": _schema} if _schema else {}
     
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String(255), unique=True, nullable=False, index=True)
@@ -102,8 +104,8 @@ class EmailAccount(Base):
     
     from_name = Column(String(255), nullable=False)
     status = Column(EmailAccountStatusEnum, nullable=False, default=EmailAccountStatus.ACTIVE.value)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
     
     # Relaciones
     templates = relationship("EmailTemplate", back_populates="account", cascade="all, delete-orphan")
@@ -113,10 +115,10 @@ class EmailAccount(Base):
 class EmailTemplate(Base):
     """Modelo para almacenar plantillas de correo"""
     __tablename__ = "email_templates"
-    __table_args__ = {"schema": settings.db_schema}
+    __table_args__ = {"schema": _schema} if _schema else {}
 
     id = Column(Integer, primary_key=True, index=True)
-    account_id = Column(Integer, ForeignKey(f"{settings.db_schema}.email_accounts.id"), nullable=False, index=True)
+    account_id = Column(Integer, ForeignKey(f"{_schema}.email_accounts.id" if _schema else "email_accounts.id"), nullable=False, index=True)
     name = Column(String(255), nullable=False, index=True)
     template_type = Column(TemplateTypeEnum, default=TemplateType.GENERAL.value, nullable=False)
     subject = Column(String(500), nullable=False)
@@ -124,8 +126,8 @@ class EmailTemplate(Base):
     text_content = Column(Text, nullable=True)
     variables = Column(Text, nullable=True)  # JSON con variables disponibles
     is_active = Column(Boolean, default=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
     
     # Relaciones
     account = relationship("EmailAccount", back_populates="templates")
@@ -135,11 +137,11 @@ class EmailTemplate(Base):
 class SentEmail(Base):
     """Modelo para registrar correos enviados"""
     __tablename__ = "sent_emails"
-    __table_args__ = {"schema": settings.db_schema}
+    __table_args__ = {"schema": _schema} if _schema else {}
 
     id = Column(Integer, primary_key=True, index=True)
-    account_id = Column(Integer, ForeignKey(f"{settings.db_schema}.email_accounts.id"), nullable=False, index=True)
-    template_id = Column(Integer, ForeignKey(f"{settings.db_schema}.email_templates.id"), nullable=True, index=True)
+    account_id = Column(Integer, ForeignKey(f"{_schema}.email_accounts.id" if _schema else "email_accounts.id"), nullable=False, index=True)
+    template_id = Column(Integer, ForeignKey(f"{_schema}.email_templates.id" if _schema else "email_templates.id"), nullable=True, index=True)
     to_email = Column(String(255), nullable=False, index=True)
     cc = Column(Text, nullable=True)  # JSON con lista de correos CC
     bcc = Column(Text, nullable=True)  # JSON con lista de correos BCC
@@ -149,8 +151,8 @@ class SentEmail(Base):
     error_message = Column(Text, nullable=True)
     retry_count = Column(Integer, default=0)
     sent_at = Column(DateTime, nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow, index=True)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), index=True)
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
     
     # Relaciones
     account = relationship("EmailAccount", back_populates="sent_emails")
@@ -161,14 +163,14 @@ class SentEmail(Base):
 class EmailAttachment(Base):
     """Modelo para almacenar adjuntos de correos"""
     __tablename__ = "email_attachments"
-    __table_args__ = {"schema": settings.db_schema}
-    
+    __table_args__ = {"schema": _schema} if _schema else {}
+
     id = Column(Integer, primary_key=True, index=True)
-    sent_email_id = Column(Integer, ForeignKey(f"{settings.db_schema}.sent_emails.id"), nullable=False, index=True)
+    sent_email_id = Column(Integer, ForeignKey(f"{_schema}.sent_emails.id" if _schema else "sent_emails.id"), nullable=False, index=True)
     filename = Column(String(500), nullable=False)
     file_content = Column(LargeBinary, nullable=False)
     mime_type = Column(String(100), nullable=False)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     
     # Relaciones
     sent_email = relationship("SentEmail", back_populates="attachments")

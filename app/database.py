@@ -12,34 +12,21 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-# Obtener URL de base de datos (se construye automáticamente si es necesario)
-database_url = settings.get_database_url()
-
 logger.info(f"Conectando a base de datos: {settings.database_type.upper()}")
 
-# Configurar el motor de base de datos con pool de conexiones
-if settings.database_type.lower() == "sqlite":
-    # Para SQLite, usar StaticPool para evitar problemas de conexión
-    engine = create_engine(
-        database_url,
-        connect_args={"check_same_thread": False},
-        poolclass=StaticPool,
-        echo=settings.debug,
-    )
-else:
-    # Para MySQL, PostgreSQL y SQL Server, usar QueuePool con configuración optimizada
-    engine = create_engine(
-        database_url,
-        poolclass=QueuePool,
-        pool_size=settings.database_pool_size,
-        max_overflow=settings.database_max_overflow,
-        pool_pre_ping=True,  # Verificar conexiones antes de usarlas
-        pool_recycle=3600,   # Reciclar conexiones cada hora
-        echo=settings.debug,
-        connect_args={
-         "options": f"-c search_path={settings.db_schema}"
-    }
-    )
+# Para MySQL, PostgreSQL y SQL Server, usar QueuePool con configuración optimizada
+_connect_args = {"options": f"-c search_path={settings.db_schema}"} if settings.db_schema else {}
+
+engine = create_engine(
+    settings.database_url,
+    poolclass=QueuePool,
+    pool_size=settings.database_pool_size,
+    max_overflow=settings.database_max_overflow,
+    pool_pre_ping=True,
+    pool_recycle=3600,
+    echo=settings.debug,
+    connect_args=_connect_args,
+)
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 

@@ -1,17 +1,29 @@
+from contextlib import asynccontextmanager
 from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy import text
 from app.config import settings
 from app.database import init_db, get_db
 from app.routes import email_accounts, email_templates, send_email, email_history
+from app.dependencies import verify_api_key
 from app.schemas import HealthCheck
 import logging
 
 # Configurar logging
 logging.basicConfig(
-    level=logging.INFO,
+    level=logging.WARNING if not settings.debug else logging.DEBUG,
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
 )
 logger = logging.getLogger(__name__)
+
+
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
+    logger.info("Iniciando aplicación...")
+    init_db()
+    logger.info("Base de datos inicializada")
+    yield
+
 
 # Crear aplicación FastAPI
 app = FastAPI(
@@ -19,6 +31,7 @@ app = FastAPI(
     description=settings.api_description,
     version=settings.api_version,
     debug=settings.debug,
+    lifespan=lifespan,
 )
 
 # Configurar CORS
@@ -30,20 +43,12 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Inicializar base de datos
-@app.on_event("startup")
-async def startup_event():
-    """Evento de inicio de la aplicación"""
-    logger.info("Iniciando aplicación...")
-    init_db()
-    logger.info("Base de datos inicializada")
-
-
-# Incluir rutas
-app.include_router(email_accounts.router)
-app.include_router(email_templates.router)
-app.include_router(send_email.router)
-app.include_router(email_history.router)
+# Incluir rutas — todos los routers requieren X-API-Key
+_auth = [Depends(verify_api_key)]
+app.include_router(email_accounts.router, dependencies=_auth)
+app.include_router(email_templates.router, dependencies=_auth)
+app.include_router(send_email.router, dependencies=_auth)
+app.include_router(email_history.router, dependencies=_auth)
 
 
 # Rutas de utilidad
@@ -52,19 +57,18 @@ async def health_check(db = Depends(get_db)):
     """Verificar el estado de la API"""
     try:
         # Verificar conexión a base de datos
-        db.execute("SELECT 1")
+        db.execute(text("SELECT 1"))
         db_status = "healthy"
     except Exception as e:
         logger.error(f"Error en base de datos: {e}")
         db_status = "unhealthy"
-    
+  
     return HealthCheck(
         status="healthy",
         version=settings.api_version,
         database=db_status,
         redis="unknown",
     )
-
 
 @app.get("/")
 async def root():
@@ -80,7 +84,7 @@ async def root():
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(
-        "app.main:app",
+        "main:app",
         host="0.0.0.0",
         port=8000,
         reload=settings.debug,

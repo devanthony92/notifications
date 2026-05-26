@@ -3,7 +3,7 @@ Esquemas Pydantic para Email Notification Service
 Autor: Anthony Martinez
 """
 
-from pydantic import BaseModel, EmailStr, Field, field_validator
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 from typing import Optional, List, Any
 from datetime import datetime
 from email.utils import parseaddr
@@ -110,6 +110,8 @@ class EmailAccountUpdate(BaseModel):
 
 class EmailAccountResponse(BaseModel):
     """Schema para respuesta de cuenta de correo"""
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     name: str
     email: str
@@ -121,9 +123,6 @@ class EmailAccountResponse(BaseModel):
     status: EmailAccountStatus
     created_at: datetime
     updated_at: datetime
-    
-    class Config:
-        from_attributes = True
 
 
 # ==================== Email Template Schemas ====================
@@ -169,6 +168,8 @@ class EmailTemplateUpdate(BaseModel):
 
 class EmailTemplateResponse(BaseModel):
     """Schema para respuesta de plantilla de correo"""
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     account_id: int
     name: str
@@ -180,9 +181,6 @@ class EmailTemplateResponse(BaseModel):
     is_active: bool
     created_at: datetime
     updated_at: datetime
-    
-    class Config:
-        from_attributes = True
 
 
 # ==================== Email Sending Schemas ====================
@@ -220,6 +218,8 @@ class SendEmailRequest(BaseModel):
 
 class SentEmailResponse(BaseModel):
     """Schema para respuesta de correo enviado"""
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     account_id: int
     template_id: Optional[int]
@@ -233,9 +233,6 @@ class SentEmailResponse(BaseModel):
     sent_at: Optional[datetime]
     created_at: datetime
     updated_at: datetime
-    
-    class Config:
-        from_attributes = True
 
 
 class SendEmailResponse(BaseModel):
@@ -248,20 +245,14 @@ class SendEmailResponse(BaseModel):
 # ==================== Utility Schemas ====================
 
 class PaginatedResponse(BaseModel):
-    """
-    Schema para respuestas paginadas
-    Autor: Anthony Martinez
-    
-    Usado por todos los endpoints GET que retornan listas
-    """
+    """Schema para respuestas paginadas"""
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+
     data: Any = Field(..., description="Lista de elementos")
     total: int = Field(..., description="Total de elementos en la BD")
     page: int = Field(..., description="Página actual")
     per_page: int = Field(..., description="Elementos por página")
     total_pages: int = Field(..., description="Total de páginas")
-    
-    class Config:
-        arbitrary_types_allowed = True
 
 
 class HealthCheck(BaseModel):
