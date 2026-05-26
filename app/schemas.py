@@ -238,7 +238,7 @@ class SentEmailResponse(BaseModel):
 class SendEmailResponse(BaseModel):
     """Schema para respuesta de envío de correo"""
     message: str
-    email_id: int
+    email_id: Optional[int]
     status: EmailStatus
 
 

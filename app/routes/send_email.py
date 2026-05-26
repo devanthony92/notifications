@@ -105,7 +105,7 @@ async def send_email(
     
     return SendEmailResponse(
         message="Correo encolado para envío",
-        email_id=0,
+        email_id=None,
         status="QUEUED",
     )
 
